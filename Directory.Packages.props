@@ -38,6 +38,8 @@
     <PackageVersion Include="Elsa.Workflows.Management" Version="$(ElsaVersion)" />
     <PackageVersion Include="Elsa.Workflows.Runtime" Version="$(ElsaVersion)" />
     <PackageVersion Include="Elsa.Workflows.Runtime.Distributed" Version="$(ElsaVersion)" />
+    <PackageVersion Include="ModelContextProtocol" Version="0.3.0-preview.1" />
+    <PackageVersion Include="ModelContextProtocol-SemanticKernel" Version="0.3.0-preview-01" />
   </ItemGroup>
   <ItemGroup Label="Elsa Studio">
     <PackageVersion Include="Elsa.Studio" Version="$(ElsaStudioVersion)" />
@@ -45,7 +47,7 @@
     <PackageVersion Include="Elsa.Studio.Core.BlazorWasm" Version="$(ElsaStudioVersion)" />
     <PackageVersion Include="Elsa.Studio.Shared" Version="$(ElsaStudioVersion)" />
     <PackageVersion Include="Elsa.Studio.Workflows" Version="$(ElsaStudioVersion)" />
-    <PackageVersion Include="Elsa.Studio.Login.BlazorWasm" Version="$(ElsaStudioVersion)"/>
+    <PackageVersion Include="Elsa.Studio.Login.BlazorWasm" Version="$(ElsaStudioVersion)" />
   </ItemGroup>
   <ItemGroup>
     <PackageVersion Include="Antlr4.Runtime.Standard" Version="4.13.1" />
@@ -125,7 +127,7 @@
     <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.5.0" />
     <PackageVersion Include="Microsoft.Identity.Client" Version="4.72.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
-    <PackageVersion Include="Microsoft.SemanticKernel" Version="1.53.1" />
+    <PackageVersion Include="Microsoft.SemanticKernel" Version="1.57.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.4.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="2.1.0" />

@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using ModelContextProtocol.Client;
+using ModelContextProtocol.SemanticKernel.Extensions;
 
 #pragma warning disable SKEXP0001
 #pragma warning disable SKEXP0010
@@ -14,7 +16,7 @@ public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscovere
         var agent = kernelConfig.Agents[agentName];
         return CreateKernel(kernelConfig, agent);
     }
-
+    
     public Kernel CreateKernel(KernelConfig kernelConfig, AgentConfig agentConfig)
     {
         var builder = Kernel.CreateBuilder();
@@ -23,7 +25,7 @@ public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscovere
 
         ApplyAgentConfig(builder, kernelConfig, agentConfig);
 
-        return builder.Build();
+        return InjectMcpFunctions(builder.Build(), kernelConfig.Mcps).Result;
     }
 
     private void ApplyAgentConfig(IKernelBuilder builder, KernelConfig kernelConfig, AgentConfig agentConfig)
@@ -41,7 +43,7 @@ public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscovere
             AddService(builder, kernelConfig, serviceConfig, services);
         }
 
-        AddPlugins(builder, agentConfig);
+        //AddPlugins(builder, agentConfig);
         AddAgents(builder, kernelConfig, agentConfig);
     }
 
@@ -57,22 +59,22 @@ public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscovere
         serviceProvider.ConfigureKernel(context);
     }
     
-    private void AddPlugins(IKernelBuilder builder, AgentConfig agent)
-    {
-        var plugins = pluginDiscoverer.GetPluginDescriptors().ToDictionary(x => x.Name);
-        foreach (var pluginName in agent.Plugins)
-        {
-            if (!plugins.TryGetValue(pluginName, out var pluginDescriptor))
-            {
-                logger.LogWarning($"Plugin {pluginName} not found");
-                continue;
-            }
+    //private void AddPlugins(IKernelBuilder builder, AgentConfig agent)
+    //{
+    //    var plugins = pluginDiscoverer.GetPluginDescriptors().ToDictionary(x => x.Name);
+    //    foreach (var pluginName in agent.Plugins)
+    //    {
+    //        if (!plugins.TryGetValue(pluginName, out var pluginDescriptor))
+    //        {
+    //            logger.LogWarning($"Plugin {pluginName} not found");
+    //            continue;
+    //        }
 
-            var pluginType = pluginDescriptor.PluginType;
-            var pluginInstance = ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, pluginType);
-            builder.Plugins.AddFromObject(pluginInstance, pluginName);
-        }
-    }
+    //        var pluginType = pluginDescriptor.PluginType;
+    //        var pluginInstance = ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, pluginType);
+    //        builder.Plugins.AddFromObject(pluginInstance, pluginName);
+    //    }
+    //}
 
     private void AddAgents(IKernelBuilder builder, KernelConfig kernelConfig, AgentConfig agent)
     {
@@ -105,9 +107,30 @@ public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscovere
                 }).ToList()
             };
 
-            var subAgentFunction = KernelFunctionFactory.CreateFromPrompt(promptTemplateConfig, loggerFactory: loggerFactory);
-            var agentPlugin = KernelPluginFactory.CreateFromFunctions(subAgent.Name, subAgent.Description, [subAgentFunction]);
-            builder.Plugins.Add(agentPlugin);
+            //var subAgentFunction = KernelFunctionFactory.CreateFromPrompt(promptTemplateConfig, loggerFactory: loggerFactory);
+            //var agentPlugin = KernelPluginFactory.CreateFromFunctions(subAgent.Name, subAgent.Description, [subAgentFunction]);
+            //builder.Plugins.Add(agentPlugin);
         }
+    }
+
+    private async Task<Kernel> InjectMcpFunctions(Kernel kernel, IDictionary<string, McpConfig> mcps)
+    {
+        foreach (var mcp in mcps.Values)
+        {
+            if (string.IsNullOrWhiteSpace(mcp.Endpoint))
+                continue;
+
+            var settings = new SseClientTransportOptions { Endpoint = new Uri(mcp.Endpoint) };
+            var sseTransport = new SseClientTransport(settings);
+            await using var client = await McpClientFactory.CreateAsync(sseTransport);
+
+            var tools = await client.ListToolsAsync();
+            var name = string.IsNullOrWhiteSpace(mcp.Name) ? "McpPlugin" : mcp.Name;
+            kernel.Plugins.AddFromFunctions(name, tools.Select(aiFunction => aiFunction.AsKernelFunction()));
+
+            await kernel.Plugins.AddMcpFunctionsFromSseServerAsync(name, mcp.Endpoint);
+        }
+
+        return kernel;
     }
 }
