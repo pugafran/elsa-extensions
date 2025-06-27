@@ -120,15 +120,17 @@ public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscovere
             if (string.IsNullOrWhiteSpace(mcp.Endpoint))
                 continue;
 
-            var settings = new SseClientTransportOptions { Endpoint = new Uri(mcp.Endpoint) };
-            var sseTransport = new SseClientTransport(settings);
-            await using var client = await McpClientFactory.CreateAsync(sseTransport);
-
-            var tools = await client.ListToolsAsync();
             var name = string.IsNullOrWhiteSpace(mcp.Name) ? "McpPlugin" : mcp.Name;
-            kernel.Plugins.AddFromFunctions(name, tools.Select(aiFunction => aiFunction.AsKernelFunction()));
 
-            await kernel.Plugins.AddMcpFunctionsFromSseServerAsync(name, mcp.Endpoint);
+            if (!kernel.Plugins.Contains(name))
+            {
+                logger.LogWarning($"Plugin {name} registered in Kernel.");
+                await kernel.Plugins.AddMcpFunctionsFromSseServerAsync(name, mcp.Endpoint);
+            }
+            else
+            {
+                logger.LogWarning($"Plugin {name} already registered in Kernel. Skipping.");
+            }
         }
 
         return kernel;
