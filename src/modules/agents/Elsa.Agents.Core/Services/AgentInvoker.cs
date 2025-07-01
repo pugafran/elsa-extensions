@@ -11,7 +11,7 @@ public class AgentInvoker(KernelFactory kernelFactory, IKernelConfigProvider ker
     public async Task<InvokeAgentResult> InvokeAgentAsync(string agentName, IDictionary<string, object?> input, CancellationToken cancellationToken = default)
     {
         var kernelConfig = await kernelConfigProvider.GetKernelConfigAsync(cancellationToken);
-        var kernel = kernelFactory.CreateKernel(kernelConfig, agentName);
+        var kernel = await kernelFactory.CreateKernelAsync(kernelConfig, agentName);
         var agentConfig = kernelConfig.Agents[agentName];
         var executionSettings = agentConfig.ExecutionSettings;
         var promptExecutionSettings = new OpenAIPromptExecutionSettings
