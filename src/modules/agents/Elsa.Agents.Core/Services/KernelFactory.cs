@@ -26,7 +26,9 @@ public class KernelFactory(IServiceDiscoverer serviceDiscoverer, ILoggerFactory 
         ApplyAgentConfig(builder, kernelConfig, agentConfig);
 
         var kernel = builder.Build();
-        return await InjectMcpFunctions(kernel, kernelConfig.Mcps);
+
+
+        return kernel;
     }
 
     public Kernel CreateKernel(KernelConfig kernelConfig, string agentName) =>
@@ -106,28 +108,5 @@ public class KernelFactory(IServiceDiscoverer serviceDiscoverer, ILoggerFactory 
             var agentPlugin = KernelPluginFactory.CreateFromFunctions(subAgent.Name, subAgent.Description, [subAgentFunction]);
             builder.Plugins.Add(agentPlugin);
         }
-    }
-
-    private async Task<Kernel> InjectMcpFunctions(Kernel kernel, IDictionary<string, McpConfig> mcps)
-    {
-        foreach (var mcp in mcps.Values)
-        {
-            if (string.IsNullOrWhiteSpace(mcp.Endpoint))
-                continue;
-
-            var name = string.IsNullOrWhiteSpace(mcp.Name) ? "McpPlugin" : mcp.Name;
-
-            if (!kernel.Plugins.Contains(name))
-            {
-                logger.LogWarning($"Plugin {name} registered in Kernel.");
-                await kernel.Plugins.AddMcpFunctionsFromSseServerAsync(name, mcp.Endpoint);
-            }
-            else
-            {
-                logger.LogWarning($"Plugin {name} already registered in Kernel. Skipping.");
-            }
-        }
-
-        return kernel;
     }
 }

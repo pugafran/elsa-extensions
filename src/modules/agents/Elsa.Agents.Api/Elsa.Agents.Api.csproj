@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Elsa" />
         <PackageReference Include="Elsa.Api.Common" />
     </ItemGroup>
 
