@@ -5,4 +5,5 @@ public class AgentsOptions
     public ICollection<ApiKeyConfig> ApiKeys { get; set; }
     public ICollection<ServiceConfig> Services { get; set; }
     public ICollection<AgentConfig> Agents { get; set; }
+    public ICollection<McpConfig> Mcps { get; set; } = [];
 }

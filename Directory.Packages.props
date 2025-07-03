@@ -4,7 +4,7 @@
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup Label="Elsa">
-    <PackageVersion Include="Elsa" Version="$(ElsaVersion)" />
+    <PackageVersion Include="Elsa" Version="3.4.0" />
     <PackageVersion Include="Elsa.Api.Common" Version="$(ElsaVersion)" />
     <PackageVersion Include="Elsa.Common" Version="$(ElsaVersion)" />
     <PackageVersion Include="Elsa.Caching" Version="$(ElsaVersion)" />
@@ -38,6 +38,7 @@
     <PackageVersion Include="Elsa.Workflows.Management" Version="$(ElsaVersion)" />
     <PackageVersion Include="Elsa.Workflows.Runtime" Version="$(ElsaVersion)" />
     <PackageVersion Include="Elsa.Workflows.Runtime.Distributed" Version="$(ElsaVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.58.0" />
     <PackageVersion Include="ModelContextProtocol" Version="0.3.0-preview.1" />
     <PackageVersion Include="ModelContextProtocol-SemanticKernel" Version="0.3.0-preview-01" />
   </ItemGroup>

@@ -11,6 +11,7 @@ using Elsa.Agents.Activities.ActivityProviders;
 using Elsa.Workflows;
 using Elsa.Workflows.Models;
 using Elsa.Workflows.Serialization.Converters;
+using System.Diagnostics;
 
 namespace Elsa.Agents.Activities;
 
@@ -34,6 +35,8 @@ public class AgentActivity : CodeActivity
     /// <inheritdoc />
     protected override async ValueTask ExecuteAsync(ActivityExecutionContext context)
     {
+        Console.WriteLine("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+
         var activityDescriptor = context.ActivityDescriptor;
         var inputDescriptors = activityDescriptor.Inputs;
         var functionInput = new Dictionary<string, object?>();
@@ -45,19 +48,27 @@ public class AgentActivity : CodeActivity
             functionInput[inputDescriptor.Name] = inputValue;
         }
 
+        Debugger.Launch();
+
         var agentInvoker = context.GetRequiredService<AgentInvoker>();
         var result = await agentInvoker.InvokeAgentAsync(AgentName, functionInput, context.CancellationToken);
-        var json = result.FunctionResult.GetValue<string>();
+        var json = result.FunctionResult.Content?.Trim();
+
+        if (string.IsNullOrWhiteSpace(json))
+            throw new InvalidOperationException("El contenido del mensaje está vacío o nulo.");
+
         var outputType = context.ActivityDescriptor.Outputs.Single().Type;
 
-        // If the target type is object, we want the JSON to be deserialized into an ExpandoObject for dynamic field access. 
+        // Si es dinámico (object), deserializa como ExpandoObject
         if (outputType == typeof(object))
             outputType = typeof(ExpandoObject);
 
         var converterOptions = new ObjectConverterOptions(SerializerOptions);
         var outputValue = json.ConvertTo(outputType, converterOptions);
+
         var outputDescriptor = activityDescriptor.Outputs.Single();
         var output = (Output)outputDescriptor.ValueGetter(this);
         context.Set(output, outputValue);
+
     }
 }

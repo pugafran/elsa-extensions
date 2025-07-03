@@ -9,15 +9,15 @@ using ModelContextProtocol.SemanticKernel.Extensions;
 
 namespace Elsa.Agents;
 
-public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscoverer serviceDiscoverer, ILoggerFactory loggerFactory, IServiceProvider serviceProvider, ILogger<KernelFactory> logger)
+public class KernelFactory(IServiceDiscoverer serviceDiscoverer, ILoggerFactory loggerFactory, IServiceProvider serviceProvider, ILogger<KernelFactory> logger)
 {
-    public Kernel CreateKernel(KernelConfig kernelConfig, string agentName)
+    public Task<Kernel> CreateKernelAsync(KernelConfig kernelConfig, string agentName)
     {
         var agent = kernelConfig.Agents[agentName];
-        return CreateKernel(kernelConfig, agent);
+        return CreateKernelAsync(kernelConfig, agent);
     }
-    
-    public Kernel CreateKernel(KernelConfig kernelConfig, AgentConfig agentConfig)
+
+    public async Task<Kernel> CreateKernelAsync(KernelConfig kernelConfig, AgentConfig agentConfig)
     {
         var builder = Kernel.CreateBuilder();
         builder.Services.AddLogging(services => services.AddConsole().SetMinimumLevel(LogLevel.Trace));
@@ -25,8 +25,17 @@ public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscovere
 
         ApplyAgentConfig(builder, kernelConfig, agentConfig);
 
-        return InjectMcpFunctions(builder.Build(), kernelConfig.Mcps).Result;
+        var kernel = builder.Build();
+
+
+        return kernel;
     }
+
+    public Kernel CreateKernel(KernelConfig kernelConfig, string agentName) =>
+        CreateKernelAsync(kernelConfig, agentName).GetAwaiter().GetResult();
+
+    public Kernel CreateKernel(KernelConfig kernelConfig, AgentConfig agentConfig) =>
+        CreateKernelAsync(kernelConfig, agentConfig).GetAwaiter().GetResult();
 
     private void ApplyAgentConfig(IKernelBuilder builder, KernelConfig kernelConfig, AgentConfig agentConfig)
     {
@@ -61,19 +70,7 @@ public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscovere
     
     //private void AddPlugins(IKernelBuilder builder, AgentConfig agent)
     //{
-    //    var plugins = pluginDiscoverer.GetPluginDescriptors().ToDictionary(x => x.Name);
-    //    foreach (var pluginName in agent.Plugins)
-    //    {
-    //        if (!plugins.TryGetValue(pluginName, out var pluginDescriptor))
-    //        {
-    //            logger.LogWarning($"Plugin {pluginName} not found");
-    //            continue;
-    //        }
-
-    //        var pluginType = pluginDescriptor.PluginType;
-    //        var pluginInstance = ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, pluginType);
-    //        builder.Plugins.AddFromObject(pluginInstance, pluginName);
-    //    }
+    //    // Implementation removed: legacy plugin system is no longer used.
     //}
 
     private void AddAgents(IKernelBuilder builder, KernelConfig kernelConfig, AgentConfig agent)
@@ -107,32 +104,9 @@ public class KernelFactory(IPluginDiscoverer pluginDiscoverer, IServiceDiscovere
                 }).ToList()
             };
 
-            //var subAgentFunction = KernelFunctionFactory.CreateFromPrompt(promptTemplateConfig, loggerFactory: loggerFactory);
-            //var agentPlugin = KernelPluginFactory.CreateFromFunctions(subAgent.Name, subAgent.Description, [subAgentFunction]);
-            //builder.Plugins.Add(agentPlugin);
+            var subAgentFunction = KernelFunctionFactory.CreateFromPrompt(promptTemplateConfig, loggerFactory: loggerFactory);
+            var agentPlugin = KernelPluginFactory.CreateFromFunctions(subAgent.Name, subAgent.Description, [subAgentFunction]);
+            builder.Plugins.Add(agentPlugin);
         }
-    }
-
-    private async Task<Kernel> InjectMcpFunctions(Kernel kernel, IDictionary<string, McpConfig> mcps)
-    {
-        foreach (var mcp in mcps.Values)
-        {
-            if (string.IsNullOrWhiteSpace(mcp.Endpoint))
-                continue;
-
-            var name = string.IsNullOrWhiteSpace(mcp.Name) ? "McpPlugin" : mcp.Name;
-
-            if (!kernel.Plugins.Contains(name))
-            {
-                logger.LogWarning($"Plugin {name} registered in Kernel.");
-                await kernel.Plugins.AddMcpFunctionsFromSseServerAsync(name, mcp.Endpoint);
-            }
-            else
-            {
-                logger.LogWarning($"Plugin {name} already registered in Kernel. Skipping.");
-            }
-        }
-
-        return kernel;
     }
 }
